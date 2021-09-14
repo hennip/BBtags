@@ -1,3 +1,7 @@
+*.txt
+*.Rproj
+*.pdf
+
 # History files
 .Rhistory
 .Rapp.history
