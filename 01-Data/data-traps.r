@@ -10,32 +10,110 @@ library(tidyverse)
 dat=read_xlsx("H:/Projects/BBTags/dat/der/Lohirysä_data_2021_der.xlsx")
 #              options = "ENCODING=WINDOWS-1252")
 
+dat%>%filter(pituus<70)%>% select(pituus, everything())
+dim(dat)
 
-df<-dat%>% select(pvm, fisher, rysätyyppi, palautettu, saantipvm, joki, meri)%>%
-  mutate(gear=ifelse(rysätyyppi=="Kaukalo", 1, ifelse(rysätyyppi=="Sukka", 2, NA)))
+df<-dat%>%filter(pituus>60)%>% # Take only MSW salmon
+  select(pvm, fisher, rysätyyppi, palautettu, saantipvm, joki, meri)%>%
+  mutate(gear=ifelse(rysätyyppi=="Kaukalo", 1, ifelse(rysätyyppi=="Sukka", 2, NA)))%>%
+  #mutate(recap=ifelse(palautettu==1,1,ifelse(is.na(palautettu)==T, 0, NA)))
+mutate(recap=ifelse(is.na(palautettu)==T, 0, 1))%>%
+  mutate(lag=saantipvm-pvm)
 
+dim(df)
 head(df)
 View(df)
-
-df%>%group_by(gear, fisher)%>%
-  summarise(n_tagged=n(),
-            n_return=sum(palautettu, na.rm = T),
-            p=n_return/n_tagged)
 
 df%>%group_by(gear)%>%
   summarise(n_tagged=n(),
             n_return=sum(palautettu, na.rm = T),
             p=n_return/n_tagged)
 
-tmp<-df%>%mutate(lag=saantipvm-pvm)%>%select(lag, everything())
-tmp%>%
+(input_dat<-df%>%group_by(gear, fisher)%>%
+  summarise(n_tagged=n(),
+            n_return=sum(palautettu, na.rm = T),
+            p=n_return/n_tagged))
+
+# Huomioita: 
+# Kalastaja 1:llä vähiten merkittyjä kaloja, merkinnät keskittyvät kauden alkuun
+# ja merkkipalautuksia on vain 1/(21+20) (sukka)
+# kalastajilla 1 ja 2 hyvin vähän eroa takaisinsaannissa 
+# pyydystyyppien välillä. 
+#Kalastajilla 3 ja 4 erot selkeitä, tosin
+# kalastaja 4:llä merkinnät keskittyneet voimakkaasti tietylle päivälle
+
+
+df%>%group_by(fisher)%>%
+  summarise(n_tagged=n(),
+            n_return=sum(palautettu, na.rm = T),
+            p=n_return/n_tagged)
+
+
+(sum_tagged<-df%>%group_by(gear)%>%
+  summarise(n_tagged=n()))
+
+print("Kaukalo")
+df%>%filter(gear==1)%>%group_by(pvm)%>%
+            summarise(n_tagged=n(),
+                      osuus_pvm=round(n_tagged/sum_tagged[1,2],2),
+                      n_return=sum(palautettu, na.rm = T),
+                      p=round(n_return/n_tagged,2))
+print("Sukka")
+df%>%filter(gear==2)%>%group_by(pvm)%>%
+  summarise(n_tagged=n(),
+            osuus_pvm=round(n_tagged/sum_tagged[2,2],2),
+            n_return=sum(palautettu, na.rm = T),
+            p=round(n_return/n_tagged,2))
+
+
+for(k in 1:4){#Kalastaja
+  #k<-4
+  df2<-filter(df, fisher==k); print (paste0("Fisher ",k))
+  sum_tagged<-df2%>%group_by(gear)%>%
+    summarise(n_tagged=n())
+  
+    print(
+    df2%>%filter(gear==1)%>%group_by(pvm)%>%
+    summarise(n_tagged=n(),
+              osuus_pvm=round(n_tagged/sum_tagged[1,2],2),
+              n_return=sum(palautettu, na.rm = T),
+              p=round(n_return/n_tagged,2)))
+    
+  print(
+    df2%>%filter(gear==2)%>%group_by(pvm)%>%
+    summarise(n_tagged=n(),
+              osuus_pvm=round(n_tagged/sum_tagged[2,2],2),
+              n_return=sum(palautettu, na.rm = T),
+              p=round(n_return/n_tagged,2))
+  )
+  }
+# Huomioita: Kalastaja 4 on merkinnyt 22.6. 65% kaukalomerkeistään ja 16.6. 53% sukkamerkeistään
+# N'iden isojen merkintäerien takaisinsaanti näyttäisi olevan ehkä hieman alakanttiin 
+# verrattuna omiin ja kollegoiden merkintöihin. Katsotaan miten tilanne muuttuu kun saadaan lisää dataa.
+
+
+
+
+df%>%
   summarise(min_lag=min(lag, na.rm=T), 
             max_lag=max(lag, na.rm=T), 
             mean_lag=mean(lag, na.rm=T),
             sd_lag=sd(lag, na.rm=T))
 
-tmp
-plot(tmp$gear,tmp$lag)
+
+df%>%group_by(fisher,pvm)%>%summarise(n=n())
+
+
+par(mfrow=c(1,2))
+tmp<-filter(df, gear==1)
+plot(jitter(tmp$fisher,2)~tmp$pvm, xlab="date", ylab="fisher", main="Kaukalo", col=tmp$fisher)
+tmp<-filter(df, gear==2)
+plot(jitter(tmp$fisher,2)~tmp$pvm, xlab="date", ylab="fisher", main="Sukka", col=tmp$fisher)
+
+
+
+
+
 
 # Pooling observations to weekly counts of releases and recaptures
 # Stratfying by defined areas: Selk?meri, Merenkurkku, Pohjanlahti, Joki

@@ -1,13 +1,101 @@
-model{
+
+library(runjags)
+
+
+M1<-"model{
   
-  for(i in 1:4){ # number of fishermen
-    for(j in 1:2){ # number of gear types
-      Tagged[i,j]~dbin((1-handling_mort),Tagged_o[i,j])
-    }
+
+  for(j in 1:2){ # number of gear types 1:Kaukalo; 2:Sukka
+  for(i in 1:4){ #number of fishermen
+    Tagged[i,j]~dbin((1-handling_mort),Tagged_o[i,j])
+  
+    C[i,j]=harv_tot[j]*Tagged[i,j]              # number of tagged fish caught
+    R[i,j]~dpois(C[i,j]*reporting_sea+0.001)    # number of tagged fish reported = data
   }
 
-  s[i,j]=survive_sea[j]*keep_tag
+    #harv_tot[j]= keep_tag*(1-(surv_sea[j]*surv_river[j]))
+    #harv_tot[j]= keep_tag*(1-surv[j])
+    
+ harv_tot[j]=keep_tag*(1-surv[j])*F/(M+F+h[j]) # harvest based on inst. mortalities
+ #harvest_sea[a,k]=keep_tag*(1-survive_sea[a,k])*F_sea[a]/(M_sea/52+F_sea[a]+h[k]) # harvest based on inst. mortalities
+ 
+    surv[j]=exp(-(M+F+h[j])) 
+    HR[j]=1-surv[j]
+    # surv_sea[j]=exp(-(M_sea+F_sea+h[j])) 
+    # surv_river[j]=exp(-(M_river+F_river+h[j]))
+
+    #harv_sea[j]=keep_tag*(1-surv_sea[j]) * F_sea/(M_sea+F_sea+h[j]) # harvest based on inst. mortalities
+    #harv_river[j]=keep_tag*(1-surv_river[j])*F_river/(M_river/52+F_river+h[k])
+    
+    h[j]~dunif(0,12)#trap induced mortality
+  }
   
+  F~dunif(0,100)
+  #F_sea~dunif(0,100) # gulf of bothnia    
+  #F_river~dunif(0,100) # river fishery
+  handling_mort~dbeta(27,132) # from Siira et al 
+  loose_tag~dbeta(12,68)  # from Siira et al, over three months
+  keep_tag_inst=-log(1-loose_tag) # inst for three months
+  keep_tag=exp(-keep_tag_inst)  # probability for keepin the tag for 3 months
+
+  loose_tagP~dbeta(12,68) 
+  handling_mortP~dbeta(27,132)
+
+
+}"
+
+data=list(#Tagged_o=c(202, 211),R=c(18,27),
+Tagged_o=cbind(
+  filter(input_dat, gear==1)$n_tagged,
+  filter(input_dat, gear==2)$n_tagged),
+R=cbind(
+  filter(input_dat, gear==1)$n_return,
+  filter(input_dat, gear==2)$n_return),
+
+M=0.1,
+          #M_sea=0.1,           # Assuming known natural mortalities for now, should use a prior later
+          #M_river=0.2,
+          
+          reporting_river=0.8, # Assuming known reporting rates for now, should use a prior later
+          reporting_sea=0.5)  
+
+
+var_names<- c("h", #"F_sea", "F_river", 
+              "HR","F",
+              "handling_mort", "handling_mortP","loose_tag","loose_tagP")
+
+run0 <- run.jags(M1,
+                 monitor= var_names,data=data, #inits = inits,
+                 n.chains = 2, method = 'parallel', thin=10, burnin = 1000,
+                 modules = "mix",keep.jags.files=F,sample =1000, adapt = 1000,
+                 progress.bar=TRUE)
+
+
+run<-run0
+
+summary(run)
+plot(run)
+
+  # yhdistetty rannikko + jokikalastuskuolevuus, tälle priori elämänkiertomallista?
+  # Otetaanko esim. viimeiseltä kolmelta vuodelta, ts 2018-2020?
+  
+  # Kalastuskuolevuus hetkelliseksi, otetaan kuitenkin huomioon koko kauden ajalta
+  # Suurin osa kaloista merkitty kesäkuun lopussa, kalastuskausi kuitenkin käynnistyy 
+  # kunnolla vasta samoihin aikoihin
+
+#  s[j]=survive_sea[j]*keep_tag
+#  survive_sea[j]=exp(-(M_sea)+h[j]+F_sea)) 
+  ## survival based on instantenous mortality rates per 4 weeks
+  # M: natural mortality, h: trap induced mortality
+  # F: fishing mortality
+  
+
+  # pitäisikö tässä kuitenkin ottaa huomioon aika? Eli kuinka
+  # monta viikkoa kala selviää hengissä merkinnän/käsitttelyn jälkeen?
+  
+  
+# Original model, somwhat
+model{   
   ## Movement of fish through space & time
   #==========================================
   
