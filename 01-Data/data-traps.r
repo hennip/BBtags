@@ -3,6 +3,7 @@ require(sp)
 require(openxlsx)
 library(readxl)
 library(tidyverse)
+library(lubridate)
 
 #### Data preparation
 
@@ -18,21 +19,133 @@ df<-dat%>%filter(pituus>60)%>% # Take only MSW salmon
   mutate(gear=ifelse(rysätyyppi=="Kaukalo", 1, ifelse(rysätyyppi=="Sukka", 2, NA)))%>%
   #mutate(recap=ifelse(palautettu==1,1,ifelse(is.na(palautettu)==T, 0, NA)))
 mutate(recap=ifelse(is.na(palautettu)==T, 0, 1))%>%
-  mutate(lag=saantipvm-pvm)
+  mutate(lag=saantipvm-pvm)%>%
+  mutate(week1=week(pvm)-20)%>%
+  mutate(week2=week(saantipvm)-20)%>%
+  mutate(recap_area= case_when(meri==1 & is.na(joki)==T ~1,
+                         joki==1 & is.na(meri)==T~2))%>%
+  select(week1, week2, pvm, recap_area, saantipvm, everything())
 
 dim(df)
 head(df)
-View(df)
+#View(df)
+
 
 df%>%group_by(gear)%>%
   summarise(n_tagged=n(),
             n_return=sum(palautettu, na.rm = T),
             p=n_return/n_tagged)
 
+# Simple input
 (input_dat<-df%>%group_by(gear, fisher)%>%
-  summarise(n_tagged=n(),
-            n_return=sum(palautettu, na.rm = T),
-            p=n_return/n_tagged))
+    summarise(n_tagged=n(),
+              n_return=sum(palautettu, na.rm = T),
+              p=n_return/n_tagged))
+
+
+#View(filter(df, palautettu==1))
+
+# 3 palautettua kalaa joille tieto saantipäivästä puuttuu:
+# Viikolla 4 merkitty sukka-kala
+# Viikolla 5 merkitty kaukalo- ja sukkakala
+
+filter(df, week1==4, rysätyyppi=="Sukka", palautettu==1, is.na(week2)==F)%>%
+  summarise(w=round(mean(week2))) #8
+filter(df, week1==5, rysätyyppi=="Sukka", palautettu==1, is.na(week2)==F)%>%
+  summarise(w=round(mean(week2))) #8
+filter(df, week1==5, rysätyyppi=="Kaukalo", palautettu==1, is.na(week2)==F)%>%
+  summarise(w=round(mean(week2))) #9
+
+# imputoidaan keskimääräiset palautusviikot puuttuviin
+
+df<-df%>%
+  mutate(week2=ifelse((week1==4 & rysätyyppi=="Sukka" & palautettu==1 & is.na(week2)==T), 8, week2 ))%>%
+  mutate(week2=ifelse((week1==5 & rysätyyppi=="Sukka" & palautettu==1 & is.na(week2)==T), 8, week2 ))%>%
+  mutate(week2=ifelse((week1==5 & rysätyyppi=="Kaukalo" & palautettu==1 & is.na(week2)==T), 9, week2 ))
+
+#View(filter(df, palautettu==1))
+
+# Tsekataan ne jotka palautettu, mutta palautuspaikka tuntematon
+filter(df, palautettu==1, is.na(joki)==T & is.na(meri)==T) # 1kpl
+filter(df, week1==4, rysätyyppi=="Sukka", palautettu==1, is.na(week2)==F)%>%
+  select(joki, everything()) # joki 7 kpl, meri 8 kpl
+
+# imputoidaan puuttuva saantitieto mereltä tulleeksi
+df<-df%>%
+  mutate(recap_area=ifelse((rysätyyppi=="Sukka" & palautettu==1 & is.na(meri)==T &is.na(joki)==T), 
+                     1, recap_area ))
+  
+
+#View(filter(df, palautettu==1, rysätyyppi=="Sukka"))
+#View(filter(df, palautettu==1, rysätyyppi=="Kaukalo"))
+max(df$week1) #6
+max(df$week2, na.rm=T) #15
+
+
+dfT_S<-filter(df, rysätyyppi=="Sukka")
+dfT_K<-filter(df, rysätyyppi=="Kaukalo")
+
+dfRsea_S<-filter(df, palautettu==1, recap_area==1, rysätyyppi=="Sukka")
+dfRsea_K<-filter(df, palautettu==1, recap_area==1, rysätyyppi=="Kaukalo")
+dfRriv_S<-filter(df, palautettu==1, recap_area==2, rysätyyppi=="Sukka")
+dfRriv_K<-filter(df, palautettu==1, recap_area==2, rysätyyppi=="Kaukalo")
+
+
+
+# Tagged and recaptured per week 1:15
+tagged<-array(NA, dim=c(15,2)) # week,  gear 
+for(j in 1:15){
+  tmpS<-tmpK<-0
+  for(i in 1:dim(dfT_S)[1]){
+    if(dfT_S$week1[i]==j){tmpS<-tmpS+1}
+  }
+  tagged[j,2]<-tmpS
+
+  for(i in 1:dim(dfT_K)[1]){
+    if(dfT_K$week1[i]==j){tmpK<-tmpK+1}
+  }
+  tagged[j,1]<-tmpK
+}
+tagged
+
+recap<-array(NA, dim=c(15,2,2)) # week, recap_area, gear
+for(j in 1:15){
+  tmp1S<-tmp1K<-0 # recap sea
+  tmp2S<-tmp2K<-0 # recap river
+  
+  # sea
+  for(i in 1:dim(dfRsea_S)[1]){
+    if(dfRsea_S$week2[i]==j){tmp1S<-tmp1S+1}
+  }
+  recap[j,1,2]<-tmp1S
+  
+  for(i in 1:dim(dfRsea_K)[1]){
+    if(dfRsea_K$week2[i]==j){tmp1K<-tmp1K+1}
+  }
+  recap[j,1,1]<-tmp1K
+  
+  # river
+  for(i in 1:dim(dfRriv_S)[1]){
+    if(dfRriv_S$week2[i]==j){tmp2S<-tmp2S+1}
+  }
+  recap[j,2,2]<-tmp2S
+  
+  for(i in 1:dim(dfRriv_K)[1]){
+    if(dfRriv_K$week2[i]==j){tmp2K<-tmp2K+1}
+  }
+  recap[j,2,1]<-tmp2K
+  
+}
+recap
+
+sum(tagged)
+sum(recap)
+
+
+
+
+
+
 
 # Huomioita: 
 # Kalastaja 1:llä vähiten merkittyjä kaloja, merkinnät keskittyvät kauden alkuun
