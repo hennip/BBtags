@@ -157,5 +157,215 @@ chainsM<-chains1
 summary(chainsM, quantiles=c(0.05,0.5,0.95))
 
 
+# Käsittelykuolevuus, ml. merkintä 
+# Aikaisempi analyysi (Ruokonen et al)
+
+#Mean             SD       Naive SE Time-series SE 
+#0.198994       0.180809       0.004668       0.009740 
+#  5%      25%      50%      75%      90%      95% 
+#  -0.11920  0.09339  0.21339  0.32926  0.41562  0.46088 
+
+#handling_mort~dbeta(27,132) # from Siira et al 
+
+# Haavinnan osuus kokonaiskäsittelykuolevuudesta (haavinta+merkintä =1)
+# Ks. snapshot_BB_allaskoe
+#> summary(as.mcmc(q_markMSW), quantiles=c(0.05,0.25,0.5,0.75,0.95))
+#  Mean             SD       Naive SE Time-series SE 
+#0.45289        0.14254        0.00368        0.00368 
+#
+#  5%    25%    50%    75%    95% 
+#0.2478 0.3471 0.4353 0.5471 0.7127 
+
+
+M4<-"
+model{  
+
+handlingM~dbeta(a, b)
+a<-mu*eta
+b<-(1-mu)*eta
+
+mu<-0.2
+eta<-9
+
+handlingM2~dbeta(1.8,7.2)
+
+inst_hand<--log(1-handlingM2)
+
+haav_prop~dbeta(a2, b2)
+a2<-mu2*eta2
+b2<-(1-mu2)*eta2
+
+mu2<-0.453
+eta2<-10
+
+
+}"
+
+cat(M4,file="prior.txt")
+
+
+system.time(jm<-jags.model('prior.txt',n.adapt=100,n.chains=1))
+
+
+system.time(chainsM<-coda.samples(jm,
+                                  variable.names=c(
+                                    "handlingM", "handlingM2",
+                                    "haav_prop"
+                                  ),
+                                  n.iter=10000,
+                                  thin=1))
+summary(chainsM, quantiles=c(0.05,0.25,0.5,0.75,0.95))
+
+
+# Raportointiaktiivisuudet rannikko- ja jokikalastuksessa:
+# Elisitointi kolmelta ekspertiltä (Petri, Timo, Tapani)
+# min max mode/median, min-max vastaa 95% tn-väliä 
+
+#Rannikkokalastus:
+
+# Timo: 0.7 (0.5,0.85)
+# Petri: 0.7 (0.55,0.80)
+# Tapsa: moodi=0.85 95%PI=(0.5,0.95) 
+
+
+
+M3<-"
+model{  
+x[1]~dbeta(mu*eta, (1-mu)*eta) 
+mu<-0.69
+eta<-25
+
+#x[2]~dbeta(0.68*50, (1-0.68)*50)
+x[2]~dbeta(0.71*60, (1-0.71)*60)
+
+
+x[3]~dbeta(0.78*13, (1-0.78)*13)
+
+
+}"
+
+cat(M3,file="prior.txt")
+
+
+system.time(jm<-jags.model('prior.txt',n.adapt=100,n.chains=1))
+
+system.time(chains1<-coda.samples(jm,variable.names=c("x"),n.iter=1000000,thin=1))
+
+summary(chains1, quantiles=c(0.025,0.05,0.5,0.95,0.975))
+par(mfrow=c(2,2))
+plot(density(chains1[,"x[1]"][[1]]), main="Rannikkokalastus, Timo")
+abline(v=c(0.5,0.7,0.85))
+plot(density(chains1[,"x[2]"][[1]]), main="Rannikkokalastus, Petri")
+abline(v=c(0.55,0.72,0.8))
+plot(density(chains1[,"x[3]"][[1]]), main="Rannikkokalastus, Tapsa")
+abline(v=c(0.5,0.85,0.95))
+
+summary(chains1[,"x[2]"], quantiles=c(0.025,0.5,0.975))
+
+
+#Jokikalastus:
+
+# Timo: 0.8 (0.6,0.9)
+# Petri: 0.75 (0.6,0.85)
+# Tapsa: moodi=0.6 95% PI= (0.3,0.8)
+
+
+
+M3<-"
+model{  
+x[1]~dbeta(mu*eta, (1-mu)*eta) 
+mu<-0.77
+eta<-30
+
+
+#x[2]~dbeta(0.73*50, (1-0.73)*50)
+x[2]~dbeta(0.75*50, (1-0.75)*50)
+
+x[3]~dbeta(0.56*13, (1-0.56)*13)
+
+
+}"
+
+cat(M3,file="prior.txt")
+
+system.time(jm<-jags.model('prior.txt',n.adapt=100,n.chains=1))
+
+system.time(chains1<-coda.samples(jm,variable.names=c("x"),n.iter=1000000,thin=1))
+
+summary(chains1, quantiles=c(0.025,0.05,0.5,0.95,0.975))
+par(mfrow=c(2,2))
+plot(density(chains1[,"x[1]"][[1]]), main="Jokikalastus, Timo")
+abline(v=c(0.6,0.8,0.9))
+plot(density(chains1[,"x[2]"][[1]]), main="Jokikalastus, Petri")
+abline(v=c(0.6,0.75,0.85))
+plot(density(chains1[,"x[3]"][[1]]), main="Jokikalastus, Tapsa")
+abline(v=c(0.3,0.6,0.8))
+
+summary(chains1[,"x[2]"], quantiles=c(0.025,0.5,0.975))
+
+library(runjags)
+
+prior<-"
+model{
+
+C_A<-C_X[Y]
+R_A<-R_X[Y]
+
+Y~dcat(p[1:3])
+
+for(i in 1:3){
+  p[i]<-1/3
+}
+
+# Timo
+C_X[1]~dbeta(0.69*25,(1-0.69)*25)
+R_X[1]~dbeta(0.77*30,(1-0.77)*30)
+
+# Petri
+C_X[2]~dbeta(0.68*50, (1-0.68)*50)
+R_X[2]~dbeta(0.73*50, (1-0.73)*50)
+
+#Tapsa
+C_X[3]~dbeta(0.78*13, (1-0.78)*13)
+R_X[3]~dbeta(0.56*13, (1-0.56)*13)
+
+}"
+
+# var_names<-c("C_X")
+# 
+# run0 <- run.jags(prior,
+#                  monitor= var_names,#data=data, #inits = inits,
+#                  n.chains = 2, #method = 'parallel', thin=10, burnin = 1000,
+#                  #modules = "mix",
+#                  keep.jags.files=F,sample =1000, adapt = 1000,
+#                  progress.bar=TRUE)
+
+
+cat(prior,file="priorTot.txt")
+system.time(jm<-jags.model('priorTot.txt',n.adapt=100,n.chains=1))
+
+system.time(chains<-coda.samples(jm,variable.names=c(
+  "C_A","R_A","C_X","R_X", "p"
+  ),n.iter=1000000,thin=1))
+
+summary(chains, quantiles=c(0.025,0.5,0.975))
+
+par(mfrow=c(1,2))
+plot(density(chains[,"C_A"][[1]]), ylim=c(0,7), main="Rannikkokalastus")
+lines(density(chains[,"C_X[1]"][[1]]), lty=2, col=2)
+lines(density(chains[,"C_X[2]"][[1]]), lty=3, col=3)
+lines(density(chains[,"C_X[3]"][[1]]), lty=4, col=4)
+
+
+plot(density(chains[,"R_A"][[1]]), ylim=c(0,8), main="Jokikalastus")
+lines(density(chains[,"R_X[1]"][[1]]), lty=2, col=2)
+lines(density(chains[,"R_X[2]"][[1]]), lty=3, col=3)
+lines(density(chains[,"R_X[3]"][[1]]), lty=4, col=4)
+
+
+
+
+
+
 
 

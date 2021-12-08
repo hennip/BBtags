@@ -9,7 +9,9 @@ require(openxlsx)
 # Stratfying by defined areas: Selk?meri, Merenkurkku, Pohjanlahti, Joki
 
 dat=read.xlsx("H:/Projects/BBTags/mark_recapture.xlsx")
-coord=data.frame(x=as.numeric(dat$`E.ETRS-TM35FIN`),y=as.numeric(dat$`N.ETRS-TM35FIN`),mark=dat$paikka
+coord=data.frame(#x=`E.ETRS-TM35FIN`, y=`N.ETRS-TM35FIN`,
+  x=as.numeric(dat$`E.ETRS-TM35FIN`),y=as.numeric(dat$`N.ETRS-TM35FIN`),
+  mark=dat$paikka
                  ,recap=dat$palautuspaikka,markday=dat$merkintapvm,recapday=dat$saantipvm)
 coord$mark=ifelse(coord$mark=="Merikarvia" | coord$mark=="Pori",1,
                   ifelse(coord$mark=="Luoto",2,
