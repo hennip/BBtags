@@ -191,12 +191,16 @@ handlingM2~dbeta(1.8,7.2)
 
 inst_hand<--log(1-handlingM2)
 
+#haav_prop~dbeta(4.53, 5.47)
 haav_prop~dbeta(a2, b2)
 a2<-mu2*eta2
 b2<-(1-mu2)*eta2
 
 mu2<-0.453
 eta2<-10
+
+hand_siira~dbeta(27,132) # from Siira et al 
+
 
 
 }"
@@ -209,6 +213,7 @@ system.time(jm<-jags.model('prior.txt',n.adapt=100,n.chains=1))
 
 system.time(chainsM<-coda.samples(jm,
                                   variable.names=c(
+                                    "hand_siira",
                                     "handlingM", "handlingM2",
                                     "haav_prop"
                                   ),
@@ -235,7 +240,6 @@ x[1]~dbeta(mu*eta, (1-mu)*eta)
 mu<-0.69
 eta<-25
 
-#x[2]~dbeta(0.68*50, (1-0.68)*50)
 x[2]~dbeta(0.71*60, (1-0.71)*60)
 
 
@@ -277,9 +281,7 @@ x[1]~dbeta(mu*eta, (1-mu)*eta)
 mu<-0.77
 eta<-30
 
-
-#x[2]~dbeta(0.73*50, (1-0.73)*50)
-x[2]~dbeta(0.75*50, (1-0.75)*50)
+x[2]~dbeta(0.755*50, (1-0.755)*50)
 
 x[3]~dbeta(0.56*13, (1-0.56)*13)
 
@@ -322,8 +324,8 @@ C_X[1]~dbeta(0.69*25,(1-0.69)*25)
 R_X[1]~dbeta(0.77*30,(1-0.77)*30)
 
 # Petri
-C_X[2]~dbeta(0.68*50, (1-0.68)*50)
-R_X[2]~dbeta(0.73*50, (1-0.73)*50)
+C_X[2]~dbeta(0.71*60, (1-0.71)*60)
+R_X[2]~dbeta(0.755*50, (1-0.755)*50)
 
 #Tapsa
 C_X[3]~dbeta(0.78*13, (1-0.78)*13)
@@ -345,21 +347,21 @@ cat(prior,file="priorTot.txt")
 system.time(jm<-jags.model('priorTot.txt',n.adapt=100,n.chains=1))
 
 system.time(chains<-coda.samples(jm,variable.names=c(
-  "C_A","R_A","C_X","R_X", "p"
+  "C_A","R_A","C_X","R_X", "p", "Y"
   ),n.iter=1000000,thin=1))
 
 summary(chains, quantiles=c(0.025,0.5,0.975))
 
 par(mfrow=c(1,2))
 plot(density(chains[,"C_A"][[1]]), ylim=c(0,7), main="Rannikkokalastus")
-lines(density(chains[,"C_X[1]"][[1]]), lty=2, col=2)
-lines(density(chains[,"C_X[2]"][[1]]), lty=3, col=3)
+lines(density(chains[,"C_X[1]"][[1]]), lty=2, col="red")
+lines(density(chains[,"C_X[2]"][[1]]), lty=3, col="green")
 lines(density(chains[,"C_X[3]"][[1]]), lty=4, col=4)
 
 
 plot(density(chains[,"R_A"][[1]]), ylim=c(0,8), main="Jokikalastus")
-lines(density(chains[,"R_X[1]"][[1]]), lty=2, col=2)
-lines(density(chains[,"R_X[2]"][[1]]), lty=3, col=3)
+lines(density(chains[,"R_X[1]"][[1]]), lty=2, col="red")
+lines(density(chains[,"R_X[2]"][[1]]), lty=3, col="green")
 lines(density(chains[,"R_X[3]"][[1]]), lty=4, col=4)
 
 
