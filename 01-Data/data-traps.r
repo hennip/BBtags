@@ -45,6 +45,8 @@ df%>%group_by(gear)%>%
 
 #View(filter(df, palautettu==1))
 
+filter(df, palautettu==1, is.na(week2)==T)
+
 # 3 palautettua kalaa joille tieto saantipäivästä puuttuu:
 # Viikolla 4 merkitty sukka-kala
 # Viikolla 5 merkitty kaukalo- ja sukkakala

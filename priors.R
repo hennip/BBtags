@@ -2,17 +2,23 @@ require(rjags)
 require(coda)
 
 
-# instantaneous M should have a prior roughly
-#Mean             SD     
-#0.0975      0.0312       
-#5%     25%     50%     75%     90%     95% 
-#0.049 0.073 0.0973    0.121   0.141   0.153 
+# instantaneous M at the coastal fishery (2 months in WGBAST-model)
+#should have a prior roughly
+# Mean             SD        
+# 0.162237       0.051923 
+#     5%     25%     50%     75%     90%     95% 
+#  0.08216 0.12066 0.16195 0.20050 0.23469 0.25385 
+0.051923/0.162237
 
 
 M1<-"
 model{  
-M~dlnorm(log(0.0975)-0.5/T, T) #inst M
-T<-1/log(pow(0.0312/0.0975,2)+1)
+#M~dlnorm(log(0.0975)-0.5/T, T) #inst M
+#T<-1/log(pow(0.0312/0.0975,2)+1)
+
+
+M~dlnorm(log(0.1622)-0.5/T, T) #inst M during 2 months
+T<-1/log(pow(0.052/0.1622,2)+1)
 
 
 }"
@@ -30,8 +36,9 @@ system.time(chains1<-coda.samples(jm,
                                   n.iter=10000,
                                   thin=1))
 
-chainsM<-chains1
-summary(chainsM, quantiles=c(0.05,0.5,0.95))
+summary(chains1, quantiles=c(0.05,0.5,0.95))
+
+plot(density(as.mcmc(chains1[,"M"])))
 
 
 # F (=-log(1-HR)) in coastal + river fishery together
