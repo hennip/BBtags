@@ -13,11 +13,11 @@ require(coda)
 
 M1<-"
 model{  
-#M~dlnorm(log(0.0975)-0.5/T, T) #inst M
+#M~dlnorm(log(0.0975)-0.5/T, T) #inst M during river fishery
 #T<-1/log(pow(0.0312/0.0975,2)+1)
 
 
-M~dlnorm(log(0.1622)-0.5/T, T) #inst M during 2 months
+M~dlnorm(log(0.1622)-0.5/T, T) #inst M during coastal fishery
 T<-1/log(pow(0.052/0.1622,2)+1)
 
 
