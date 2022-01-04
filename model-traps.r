@@ -108,6 +108,7 @@ haav_propP~dbeta(4.53, 5.47) # haavinnan osuus käsittelykuolevuudesta Siira et 
 
   loose_tagP~dbeta(12,68) 
   handling_mortP~dbeta(1.8,7.2) 
+  hand_instP=-log(1-handling_mortP/12)
   
   F_seaP~dlnorm(log(0.1566)-0.5/T_seaP, T_seaP) 
   T_seaP=1/log(pow(0.02062/0.1566,2)+1)
@@ -142,6 +143,14 @@ R_X[2]~dbeta(0.755*50, (1-0.755)*50)
 C_X[3]~dbeta(0.78*13, (1-0.78)*13)
 R_X[3]~dbeta(0.56*13, (1-0.56)*13)
 
+hP~dunif(0,12)
+
+Pdie_seaP=(hP+hand_instP*haav_propP)/(M_seaP/12+hP+F_seaP/11+hand_instP*haav_propP)*
+(1-exp(-(M_seaP/12+hP+F_seaP/11+hand_instP*haav_propP)))
+
+Pdie_riverP=(hP+hand_instP*haav_propP)/(M_riverP/52+hP+F_riverP/12+hand_instP*haav_propP)*
+(1-exp(-(M_riverP/52+hP+F_riverP/12+hand_instP*haav_propP)))
+
 
 }"
 
@@ -156,6 +165,7 @@ data=list(
 var_names<- c(
   "haav_prop",  "haav_propP",
   "Pdie_sea", "Pdie_river",
+  "Pdie_seaP", "Pdie_riverP",
   #"Y", "p",
   "reporting_sea", "reporting_river",
   "reporting_seaP", "reporting_riverP",
@@ -195,14 +205,29 @@ summary((1-exp(-chains[,"h[1]"]))/(1-exp(-chains[,"h[2]"])), quantiles=c(0.05,0.
 
 
 
-# Osuus kokonaiskuolevuudesta
+# Tn kuolla tietystä rysätyypistä vapauttamisen vuoksi
 ##################################
 
-summary(chains[,"Pdie_sea[1]"], quantiles=c(0.05,0.5,0.95))
-summary(chains[,"Pdie_sea[2]"], quantiles=c(0.05,0.5,0.95))
+summary(chains[,"Pdie_sea[1]"], quantiles=c(0.05,0.5,0.95)) #Kaukalo
+summary(chains[,"Pdie_sea[2]"], quantiles=c(0.05,0.5,0.95)) #Sukka
 
-summary(chains[,"Pdie_sea[1]"]/chains[,"Pdie_sea[2]"], quantiles=c(0.12,0.25,0.5,0.75,0.95))
+# Tn kaukalo > sukka
+summary(chains[,"Pdie_sea[1]"]/chains[,"Pdie_sea[2]"], quantiles=c(0.05,0.25,0.5,0.75,0.95))
 #summary(chains[,"Pdie_river[1]"]/chains[,"Pdie_river[2]"], quantiles=c(0.11,0.25,0.5,0.75,0.95))
+
+tmp<-c()
+for(i in 1:length(chains[,"Pdie_sea[1]"])){
+  tmp[i]<-ifelse(chains[,"Pdie_sea[1]"][i]>chains[,"Pdie_sea[2]"][i], 1,0)
+}
+mean(tmp)
+
+par(mfrow=c(1,2))
+plot(density(chains[,"Pdie_sea[1]"]),lwd=2, main="Vapautuskuolleisuus", ylim=c(0,17), xlab="Todennäköisyys kuolla")
+lines(density(chains[,"Pdie_sea[2]"]), lty=2, lwd=2)
+#plot(density(chains[,"Pdie_seaP"]), lwd=1) #Priori piikkaa ykköseen, mutta tasainen hännässä
+legend("topright", lty=c(1,2), lwd=c(2,2), legend=c("Kaukalo", "Sukka"))
+
+plot(density(chains[,"Pdie_sea[1]"]/chains[,"Pdie_sea[2]"]), main="Kuoll. kaukalo / kuoll. sukka", xlim=c(0,20), ylim=c(0,0.35), xlab="Osamäärä")
 
 
 par(mfrow=c(2,2))
