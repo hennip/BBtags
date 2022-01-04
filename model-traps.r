@@ -93,8 +93,8 @@ M2<-"model{
   T_Mc<-1/log(pow(0.052/0.1622,2)+1)
 
 
-  move~dbeta(2,2)             # weakly informative prior for movement probability 
-  moveP~dbeta(2,2)             # weakly informative prior for movement probability 
+  move~dunif(0,1)#dbeta(2,2)             # weakly informative prior for movement probability 
+  moveP~dunif(0,1)#dbeta(2,2)             # weakly informative prior for movement probability 
 
   #handling_mort~dbeta(27,132) # from Siira et al 
   handling_mort~dbeta(1.8,7.2) # Ruokonen et al 2021, 12 weeks
@@ -180,6 +180,24 @@ plot(run)
 
 chains<-as.mcmc(run)
 
+# Rysäkohtainen kuolevuus
+#===========================
+summary(chains[,"h[1]"], quantiles=c(0.05,0.5,0.95))
+summary(chains[,"h[2]"], quantiles=c(0.05,0.5,0.95))
+
+# Absoluuttiseksi kääntäminen mielekästä vain jos ajatellaan että muita kuolevuuksia ei olisi
+summary(1-exp(-chains[,"h[1]"]), quantiles=c(0.05,0.5,0.95))
+summary(1-exp(-chains[,"h[2]"]), quantiles=c(0.05,0.5,0.95))
+
+summary((1-exp(-chains[,"h[1]"]))/(1-exp(-chains[,"h[2]"])), quantiles=c(0.05,0.5,0.95))
+
+
+
+
+
+# Osuus kokonaiskuolevuudesta
+##################################
+
 summary(chains[,"Pdie_sea[1]"], quantiles=c(0.05,0.5,0.95))
 summary(chains[,"Pdie_sea[2]"], quantiles=c(0.05,0.5,0.95))
 
@@ -188,17 +206,44 @@ summary(chains[,"Pdie_sea[1]"]/chains[,"Pdie_sea[2]"], quantiles=c(0.12,0.25,0.5
 
 
 par(mfrow=c(2,2))
-plot(density(chains[,"reporting_sea"]), main="reporting at coastal fishery")
-lines(density(chains[,"reporting_seaP"]), lty=2)
+plot(density(chains[,"reporting_seaP"]), main="reporting at coastal fishery")
+lines(density(chains[,"reporting_sea"]), lwd=2)
 
-plot(density(chains[,"reporting_river"]), main="reporting at river fishery")
-lines(density(chains[,"reporting_riverP"]), lty=2)
+plot(density(chains[,"reporting_riverP"]), main="reporting at river fishery")
+lines(density(chains[,"reporting_river"]), lwd=2)
 
-plot(density(chains[,"F_sea"]), main="F at coastal fishery")
-lines(density(chains[,"F_seaP"]), lty=2)
+plot(density(chains[,"F_seaP"]), main="F at coastal fishery")
+lines(density(chains[,"F_sea"]), lty=2)
 
-plot(density(chains[,"F_river"]), main="F at river fishery")
-lines(density(chains[,"F_riverP"]), lty=2)
+plot(density(chains[,"F_riverP"]), main="F at river fishery")
+lines(density(chains[,"F_river"]), lty=2)
+
+
+# Instantaneous mortalities
+par(mfrow=c(3,3))
+plot(density(chains[,"F_seaP"]), main="Kalastuskuol., rannikko", xlab="Hetkellinen kuolleisuus", ylab="Tiheys", xlim=c(0,0.5))
+lines(density(chains[,"F_sea"]),lwd=2)
+plot(density(chains[,"F_riverP"]), main="Kalastuskuol., jokialue", xlab="Hetkellinen kuolleisuus", ylab="Tiheys", xlim=c(0,0.6))
+lines(density(chains[,"F_river"]),lwd=2)
+plot(density(chains[,"M_seaP"]), main="Luonnollinen kuol., rannikko", xlab="Hetkellinen kuolleisuus", ylab="Tiheys", xlim=c(0,0.5), ylim=c(0,10))
+lines(density(chains[,"M_sea"]),lwd=2)
+plot(density(chains[,"M_riverP"]), main="Luonnollinen kuol., jokialue", xlab="Hetkellinen kuolleisuus", ylab="Tiheys", xlim=c(0,0.5))
+lines(density(chains[,"M_river"]),lwd=2)
+
+#par(mfrow=c(2,2))
+plot(density(chains[,"handling_mortP"]), main="Käsittelykuolleisuus", xlab="Hetkellinen kuolleisuus", ylab="Tiheys", xlim=c(0,1), ylim=c(0,4))
+lines(density(chains[,"handling_mort"]),lwd=2)
+plot(density(chains[,"haav_propP"]), main="Haavinnan osuus käsittelykuolleisuudesta", xlab="Osuus", ylab="Tiheys", xlim=c(0,1))
+lines(density(chains[,"haav_prop"]),lwd=2)
+plot(density(chains[,"loose_tagP"]), main="Merkin irtoamisen tn", xlab="Todennäköisyys", ylab="Tiheys", xlim=c(0,0.4), ylim=c(0,12))
+lines(density(chains[,"loose_tag"]),lwd=2)
+
+plot(density(chainsP[,"C_A"][[1]]), main="Raportointiaktiivisuus, rannikko", xlab="Todennäköisyys", ylim=c(0,6))
+lines(density(chains[,"reporting_sea"]), lwd=2)
+
+plot(density(chainsP[,"R_A"][[1]]), main="Raportointiaktiivisuus, jokialueet", xlab="Todennäköisyys", ylim=c(0,6))
+lines(density(chains[,"reporting_river"]), lwd=2)
+
 
 
 # Raportoinnin priorit
