@@ -62,17 +62,17 @@ M2<-"model{
     m[t,j]=surv_sea[j]*keep_tag*move     # surviving fraction that moves from sea to river
   }
   
-  Pdie_sea[j]=(h[j]+hand_inst*haav_prop)/(M_sea/12+h[j]+F_sea/11+hand_inst*haav_prop)*
-  (1-exp(-(M_sea/12+h[j]+F_sea/11+hand_inst*haav_prop)))
+  Pdie_sea[j]=(h[j]+hand_inst*haav_prop)/(M_sea/8+h[j]+F_sea/11+hand_inst*haav_prop)*
+  (1-exp(-(M_sea/8+h[j]+F_sea/11+hand_inst*haav_prop)))
 
   Pdie_river[j]=(h[j]+hand_inst*haav_prop)/(M_river/52+h[j]+F_river/12+hand_inst*haav_prop)*
   (1-exp(-(M_river/52+h[j]+F_river/12+hand_inst*haav_prop)))
   
-    surv_sea[j]=exp(-(M_sea/12+h[j]+F_sea/11+hand_inst))  # survival based on instantenous mortality rates per week
+    surv_sea[j]=exp(-(M_sea/8+h[j]+F_sea/11+hand_inst))  # survival based on instantenous mortality rates per week
                                                 # M: natural mortality, h: trap induced mortality
                                                 # F: fishing mortality
                                                 
-    harv_sea[j]=keep_tag*(1-surv_sea[j])*(F_sea/11)/(M_sea/12+F_sea/11+h[j]+hand_inst) # harvest based on inst. mortalities
+    harv_sea[j]=keep_tag*(1-surv_sea[j])*(F_sea/11)/(M_sea/8+F_sea/11+h[j]+hand_inst) # harvest based on inst. mortalities
     
     surv_river[j]=exp(-(M_river/52+F_river/12+h[j]+hand_inst))
     harv_river[j]=keep_tag*(1-surv_river[j])*(F_river/12)/(M_river/52+F_river/12+h[j]+hand_inst)
@@ -145,8 +145,8 @@ R_X[3]~dbeta(0.56*13, (1-0.56)*13)
 
 hP~dunif(0,12)
 
-Pdie_seaP=(hP+hand_instP*haav_propP)/(M_seaP/12+hP+F_seaP/11+hand_instP*haav_propP)*
-(1-exp(-(M_seaP/12+hP+F_seaP/11+hand_instP*haav_propP)))
+Pdie_seaP=(hP+hand_instP*haav_propP)/(M_seaP/8+hP+F_seaP/11+hand_instP*haav_propP)*
+(1-exp(-(M_seaP/8+hP+F_seaP/11+hand_instP*haav_propP)))
 
 Pdie_riverP=(hP+hand_instP*haav_propP)/(M_riverP/52+hP+F_riverP/12+hand_instP*haav_propP)*
 (1-exp(-(M_riverP/52+hP+F_riverP/12+hand_instP*haav_propP)))

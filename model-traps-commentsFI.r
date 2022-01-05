@@ -71,58 +71,49 @@ model{
   T_river=1/log(pow(0.07043/0.2119,2)+1) # Hajontamuuttuja
   M_river~dlnorm(log(0.0975)-0.5/T_Mr, T_Mr) # (Yleinen) hetkellinen luonnollinen kuolevuus vuoden aikana 
   T_Mr=1/log(pow(0.0312/0.0975,2)+1) # Hajontamuuttuja
-  M_sea~dlnorm(log(0.1622)-0.5/T_Mc, T_Mc) # Hetkellinen luonnollinen kuolevuus rannikkokalastuksen aikana, coastal inst M during 2 months in WGBAST model
+  M_sea~dlnorm(log(0.1622)-0.5/T_Mc, T_Mc) # Hetkellinen luonnollinen kuolevuus 8 viikon aikana
   T_Mc<-1/log(pow(0.052/0.1622,2)+1) # Hajontamuuttuja
   
+  # Tn siirtyä viikon aikana rannikolta jokialueelle 
+  move~dunif(0,1)
   
-  move~dunif(0,1)#dbeta(2,2)             # weakly informative prior for movement probability 
-  moveP~dunif(0,1)#dbeta(2,2)             # weakly informative prior for movement probability 
+  # Prosentuaalisen käsittelykuolevuuden priorijakauma (12 viikon aikana)
+  handling_mort~dbeta(1.8,7.2) 
+  hand_inst=-log(1-handling_mort/12) # Hetkellinen käsittelykuolevuus, 1 viikko
+  haav_prop~dbeta(4.53, 5.47) # haavinnan osuus käsittelykuolevuudesta
+
+  # Priorijakauma todennäköisyydelle, että merkki irtoaa 12 viikon aikana
+  loose_tag~dbeta(12,68)  
+  keep_tag_inst=-log(1-loose_tag/12) # Hetkellinen merkin irtoaminen, 1 viikko
+  keep_tag=exp(-keep_tag_inst)  # Todennäköisyys että merkki ei irtoa 1 viikon aikana
   
-  #handling_mort~dbeta(27,132) # from Siira et al 
-  handling_mort~dbeta(1.8,7.2) # Ruokonen et al 2021, 12 weeks
-  hand_inst=-log(1-handling_mort/12)
-  haav_prop~dbeta(4.53, 5.47) # haavinnan osuus käsittelykuolevuudesta Siira et al allaskokeen perusteella
-  haav_propP~dbeta(4.53, 5.47) # haavinnan osuus käsittelykuolevuudesta Siira et al allaskokeen perusteella
   
-  loose_tag~dbeta(12,68)  # from Siira et al, over three months
-  keep_tag_inst=-log(1-loose_tag/12) # inst for one week
-  keep_tag=exp(-keep_tag_inst)  # probability for keepin the tag for 1 week
+  # Asiantuntija-arviot merkkien raportointiaktiivisuudelle
+  # C_X: rannikolla
+  # R_X: jokialueilla
   
-  loose_tagP~dbeta(12,68) 
-  handling_mortP~dbeta(1.8,7.2) 
-  
-  F_seaP~dlnorm(log(0.1566)-0.5/T_seaP, T_seaP) 
-  T_seaP=1/log(pow(0.02062/0.1566,2)+1)
-  
-  F_riverP~dlnorm(log(0.2119)-0.5/T_riverP, T_riverP) 
-  T_riverP=1/log(pow(0.07043/0.2119,2)+1)
-  
-  M_riverP~dlnorm(log(0.0975)-0.5/T_MrP, T_MrP) # normal inst M based on WGBAST, 52 weeks
-  T_MrP=1/log(pow(0.0312/0.0975,2)+1)
-  
-  M_seaP~dlnorm(log(0.1622)-0.5/T_McP, T_McP) #coastal inst M during 2 months in WGBAST model
-  T_McP<-1/log(pow(0.052/0.1622,2)+1)
-  
-  reporting_sea=C_X[Y]
-  reporting_river=R_X[Y]
-  
-  Y~dcat(p[1:3])
-  
-  for(i in 1:3){
-    p[i]=1/3
-  }
-  
-  # Timo
+  # Asiantuntija 1
   C_X[1]~dbeta(0.69*25,(1-0.69)*25)
   R_X[1]~dbeta(0.77*30,(1-0.77)*30)
   
-  # Petri
+  # Asiantuntija 2
   C_X[2]~dbeta(0.71*60, (1-0.71)*60)
   R_X[2]~dbeta(0.755*50, (1-0.755)*50)
   
-  #Tapsa
+  # Asiantuntija 3
   C_X[3]~dbeta(0.78*13, (1-0.78)*13)
   R_X[3]~dbeta(0.56*13, (1-0.56)*13)
+
+  # Asiantuntija-arvioiden mallikeskiarvoistus
+  Y~dcat(p[1:3])
+  for(i in 1:3){
+    p[i]=1/3 # Asiantuntijoiden arvioilla yhtäsuuret painokertoimet
+  }
+  
+  # Yhdistetyt raportointiaktiivisuudet rannikolla ja jokialueilla
+  reporting_sea=C_X[Y]
+  reporting_river=R_X[Y]
   
   
 }
+
