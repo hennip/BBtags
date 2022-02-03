@@ -99,8 +99,9 @@ M2<-"model{
   #handling_mort~dbeta(27,132) # from Siira et al 
   handling_mort~dbeta(1.8,7.2) # Ruokonen et al 2021, 12 weeks
   hand_inst=-log(1-handling_mort/12)
-  haav_prop~dbeta(4.53, 5.47) # haavinnan osuus käsittelykuolevuudesta Siira et al allaskokeen perusteella
-haav_propP~dbeta(4.53, 5.47) # haavinnan osuus käsittelykuolevuudesta Siira et al allaskokeen perusteella
+  haav_prop~dlnorm(-0.754,8.2059) # haavinnan osuus käsittelykuolevuudesta Siira et al allaskokeen perusteella
+haav_propP~dlnorm(-0.754,8.2059)
+ # haavinnan osuus käsittelykuolevuudesta Siira et al allaskokeen perusteella
 
   loose_tag~dbeta(12,68)  # from Siira et al, over three months
   keep_tag_inst=-log(1-loose_tag/12) # inst for one week

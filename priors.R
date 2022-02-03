@@ -177,15 +177,20 @@ summary(chainsM, quantiles=c(0.05,0.5,0.95))
 # Haavinnan osuus kokonaiskäsittelykuolevuudesta (haavinta+merkintä =1)
 # Ks. snapshot_BB_allaskoe
 #> summary(as.mcmc(q_markMSW), quantiles=c(0.05,0.25,0.5,0.75,0.95))
-#  Mean             SD       Naive SE Time-series SE 
-#0.45289        0.14254        0.00368        0.00368 
-#
+#Mean             SD       Naive SE Time-series SE 
+#0.509953       0.173782       0.004487       0.004099 
+
 #  5%    25%    50%    75%    95% 
-#0.2478 0.3471 0.4353 0.5471 0.7127 
+#0.2642 0.3767 0.4862 0.6188 0.8347 
+# Obs! Beta(1,1) prior used in the one above!
+
+
 
 
 M4<-"
 model{  
+
+hand_siira~dbeta(27,132) # from Siira et al 
 
 handlingM~dbeta(a, b)
 a<-mu*eta
@@ -198,22 +203,32 @@ handlingM2~dbeta(1.8,7.2)
 
 inst_hand<--log(1-handlingM2)
 
-#haav_prop~dbeta(4.53, 5.47)
-haav_prop~dbeta(a2, b2)
-a2<-mu2*eta2
-b2<-(1-mu2)*eta2
+# #haav_prop[1]~dbeta(4.53, 5.47)
+# haav_prop[1]~dbeta(a2, b2)
+# a2<-mu2*eta2
+# b2<-(1-mu2)*eta2
+# 
+# mu2<-0.453
+# eta2<-10
 
-mu2<-0.453
-eta2<-10
-
-hand_siira~dbeta(27,132) # from Siira et al 
-
+#haav_prop~dlnorm(M,T)
+M<-log(mu3)-0.5/T
+T<-1/log(cv*cv+1)
+cv<-0.18/mu3
+mu3<-0.5
+haav_prop~dlnorm(-0.754,8.2059)
 
 
 }"
 
 cat(M4,file="prior.txt")
 
+
+# mu3<-0.5
+# cv<-0.18/mu3
+# Tau<-1/log(cv*cv+1)
+# M<-log(mu3)-0.5/Tau
+# M;Tau
 
 system.time(jm<-jags.model('prior.txt',n.adapt=100,n.chains=1))
 
@@ -224,7 +239,7 @@ system.time(chainsM<-coda.samples(jm,
                                     "handlingM", "handlingM2",
                                     "haav_prop"
                                   ),
-                                  n.iter=10000,
+                                  n.iter=100000,
                                   thin=1))
 summary(chainsM, quantiles=c(0.05,0.25,0.5,0.75,0.95))
 
