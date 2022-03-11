@@ -8,7 +8,7 @@ library(lubridate)
 #### Data preparation
 
 
-dat=read_xlsx("H:/Projects/BBTags/dat/der/Lohirysä_data_2021_der.xlsx")
+dat=read_xlsx("C:/Users/03080932/OneDrive - Valtion/Projects/BBTags/dat/der/Lohirysä_data_2021_der.xlsx")
 #              options = "ENCODING=WINDOWS-1252")
 
 dat%>%filter(pituus<70)%>% select(pituus, everything())

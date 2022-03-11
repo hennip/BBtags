@@ -211,26 +211,26 @@ inst_hand<--log(1-handlingM2)
 # mu2<-0.453
 # eta2<-10
 
-#haav_prop~dlnorm(M,T)
-M<-log(mu3)-0.5/T
-T<-1/log(cv*cv+1)
-cv<-0.18/mu3
-mu3<-0.5
-haav_prop~dlnorm(-0.754,8.2059)
+# haav_prop~dlnorm(M,T)I(,1)
+# M<-log(mu3)-0.5/T
+# T<-1/log(cv*cv+1)
+# cv<-0.2/mu3
+# mu3<-0.52
+haav_prop~dlnorm(-0.723,7.2485)I(,1)
 
 
 }"
 
-cat(M4,file="prior.txt")
+cat(M4,file="priorM4.txt")
 
+# 
+# mu3<-0.52
+# cv<-0.2/mu3
+#  Tau<-1/log(cv*cv+1)
+#  M<-log(mu3)-0.5/Tau
+#  M;Tau
 
-# mu3<-0.5
-# cv<-0.18/mu3
-# Tau<-1/log(cv*cv+1)
-# M<-log(mu3)-0.5/Tau
-# M;Tau
-
-system.time(jm<-jags.model('prior.txt',n.adapt=100,n.chains=1))
+system.time(jm<-jags.model('priorM4.txt',n.adapt=100,n.chains=1))
 
 
 system.time(chainsM<-coda.samples(jm,
