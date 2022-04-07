@@ -68,6 +68,20 @@ M2<-"model{
   Pdie_river[j]=(h[j]+hand_inst*haav_prop)/(M_river/52+h[j]+F_river/12+hand_inst*haav_prop)*
   (1-exp(-(M_river/52+h[j]+F_river/12+hand_inst*haav_prop)))
   
+
+  Pdie_sea_12w[j]=(h[j]+hand_inst*haav_prop)/(M_sea/8+h[j]+F_sea/11+hand_inst*haav_prop)*
+  (1-exp(-(M_sea/8+h[j]+F_sea/11+hand_inst*haav_prop)))
+
+  Pdie_river_12w[j]=(h[j]+hand_inst*haav_prop)/(M_river/52+h[j]+F_river/12+hand_inst*haav_prop)*
+  (1-exp(-(M_river/52+h[j]+F_river/12+hand_inst*haav_prop)))
+  
+
+  x[j]=(h[j]+hand_inst*haav_prop)/(M_sea/8+h[j]+F_sea/11+hand_inst*haav_prop)*
+  (1-exp(-(M_sea/8+h[j]+F_sea/11+hand_inst*haav_prop)))/
+(h[j]+hand_inst*haav_prop)/(M_sea/8+h[j]+F_sea/11+hand_inst*haav_prop)*
+  (1-exp(-(M_sea/8+h[j]+F_sea/11+hand_inst*haav_prop)))
+
+
     surv_sea[j]=exp(-(M_sea/8+h[j]+F_sea/11+hand_inst))  # survival based on instantenous mortality rates per week
                                                 # M: natural mortality, h: trap induced mortality
                                                 # F: fishing mortality

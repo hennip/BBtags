@@ -50,12 +50,13 @@ log(0.1622)-0.5/T_Ms
 #M_sea~dlnorm(log(0.1622)-0.5/T_Ms, T_Ms) # sea  M, 8 weeks
 M_sea~logN(-1.868,0.3128^2)
 
-M2<-"model{
+M3<-"model{
   for(t in 1:T){
-    for(i in 1:2){ # Area (1: sea, 2: river)  
       for(j in 1:2){ # Gear (1: pontoon trap with an emptying chute, 2: PU trap with a lifting bag)
+        N_alive[t,j]~dbin(p_alive[j],N_tagged[t,j])
 
-        N_recap[t,i,j]~dpois(HR[i,j]*n[t,i,j]*r_rep[i]+0.001)
+      for(i in 1:2){ # Area (1: sea, 2: river)  
+        N_recap[t,i,j]~dpois(HR[i]*n[t,i,j]*r_rep[i]+0.001)
 
       }
     }
@@ -63,35 +64,35 @@ M2<-"model{
     
   # First time step: the initial release
   for(j in 1:2){
-    n[1,1,j]=N_tagged[1,j]    
+
+    p_alive[j]=exp(-(h[j]+ip_mark))
+    p_die[j]=1-exp(-(h[j]+ip_mark*q_hand))
+
+    n[1,1,j]=N_alive[1,j]    
     n[1,2,j]=0        # no releases in the river
   
     # Number of fish at sea through time 
     # s:surviving that stays at the area
     for(t in 1:(T-1)){
-      n[t+1,1,j]=n[t,1,j]*q_SS[t,1,j]+N_tagged[t+1,j]
+      n[t+1,1,j]=n[t,1,j]*q_SS[1]+N_alive[t+1,j]
     }
  
     # Number of fish at river through time 
     # m:surviving that moves from sea to river
     # s:surviving that stays at the area
     for(t in 1:T){
-      n[t+1,2,j]=n[t,1,j]*q_SM[t,j]+n[t,2,j]*q_SS[t,2,j]
+      n[t+1,2,j]=n[t,1,j]*q_SM+n[t,2,j]*q_SS[2]
     }
- 
+  } 
+
+  # Surviving fractions  
+  q_SS[1]=p_surv[1]*p_keep*(1-p_move) # survives and stays at sea
+  q_SS[2]=p_surv[2]*p_keep        # survives and that stays at river
+  q_SM=p_surv[1]*p_keep*p_move   # survives and moves from sea to river
   
-    for(t in 1:T){
-      q_SS[t,1,j]=p_surv[1,j]*p_keep*(1-p_move) # surviving fraction that stays at sea
-      q_SS[t,2,j]=p_surv[2,j]*p_keep        # surviving fraction that stays at river
-      q_SM[t,j]=p_surv[1,j]*p_keep*p_move     # surviving fraction that moves from sea to river
-    }
-  
-    for(i in 1:2){
-      Pdie[i,j]=(h[j]+ip_mark*q_hand)/(M[i]+h[j]+F[i]+ip_mark*q_hand)*
-                (1-exp(-(M[i]+h[j]+F[i]+ip_mark*q_hand)))
-      p_surv[i,j]=exp(-(M[i]+h[j]+F[i]+ip_mark))  # survival based on instantenous mortality rates per week
-      HR[i,j]=p_keep*(1-p_surv[i,j])*F[i]/(M[i]+F[i]+h[j]+ip_mark) # harvest based on inst. mortalities
-    }
+  for(i in 1:2){
+    p_surv[i]=exp(-(M[i]+F[i]))  # survival based on instantenous mortality rates per week
+    HR[i]=p_keep*(1-p_surv[i])*F[i]/(M[i]+F[i]) # harvest based on inst. mortalities
   }
   
   # Uninformative priors
@@ -123,14 +124,14 @@ M2<-"model{
   # Other informative priors
 
   p_mark~dbeta(1.8,7.2) # mortality due to tagging + handling, 12 weeks
-  ip_mark=-log(1-p_mark/12) # instantaneous tagging + handling mortality, 1 week
+  ip_mark=-log(1-p_mark) # instantaneous tagging + handling mortality, 12 weeks
 
 # Share of handling mortality in total tagging + handling
   q_hand~dlnorm(-0.723,7.2485)T(,1)
   
   p_lose~dbeta(12,68)  # probability to loose a tag, 12 weeks
-  ip_keep=-log(1-loose_tag/12) # prob to keep tag for one week, instantaneous scale
-  p_keep=exp(-keep_tag_inst)  # probability to keep a tag for 1 week
+  ip_keep=-log(1-p_lose/12) # prob to keep tag for one week, instantaneous scale
+  p_keep=exp(-ip_keep)  # probability to keep a tag for 1 week
   
   # Priors for reporting rates of tags based on expert elicitation
   r_rep[1]=E[Y,1] # sea fisheries
@@ -145,14 +146,25 @@ M2<-"model{
   # Expert 1
   E[1,1]~dbeta(17.25,7.75)
   E[1,2]~dbeta(23.1,6.9)
-  
+
   # Expert 2
   E[2,1]~dbeta(42.6,17.4)
   E[2,2]~dbeta(37.75,12.25)
-  
+
   # Expert 3
   E[3,1]~dbeta(10.14,2.86)
   E[3,2]~dbeta(7.28,5.72)
+
+# E[1,1]~dbeta(0.69*25,(1-0.69)*25)
+#  E[1,2]~dbeta(0.77*30,(1-0.77)*30)
+# 
+# # Petri
+# E[2,1]~dbeta(0.71*60, (1-0.71)*60)
+# E[2,2]~dbeta(0.755*50, (1-0.755)*50)
+# 
+# #Tapsa
+#  E[3,1]~dbeta(0.78*13, (1-0.78)*13)
+# E[3,2]~dbeta(0.56*13, (1-0.56)*13)
 
 
 }"
@@ -166,16 +178,17 @@ data=list(
 
 
 var_names<- c(
-  "q_net",
-  "Pdie", 
-  "p_rep",
+  "q_hand",
+  "p_alive", 
+  "p_die", 
+  "r_rep",
   "h", "F", "M",
   "F_sea", "F_river", 
   "M_sea",  "M_river",
-  "HR", "move",
-  "handling_mort", "loose_tag","loose_tagP")
+  "HR", "p_move",
+  "p_mark", "p_lose", "p_keep")
 
-run1 <- autorun.jags(M2,
+run1 <- autorun.jags(M3,
                  monitor= var_names,data=data, #inits = inits,
                  n.chains = 2, method = 'parallel', thin=10, 
                  modules = "mix",progress.bar=TRUE)
@@ -190,6 +203,11 @@ chains<-as.mcmc(run)
 
 # Rysäkohtainen kuolevuus
 #===========================
+summary(chains[,"p_die[1]"]/chains[,"p_die[2]"], quantiles=c(0.05, 0.20,0.5,0.95))
+
+summary((1-chains[,"p_die[2]"])/(1-chains[,"p_die[1]"]), quantiles=c(0.05, 0.20,0.5,0.95))
+
+
 summary(chains[,"h[1]"], quantiles=c(0.05,0.5,0.95))
 summary(chains[,"h[2]"], quantiles=c(0.05,0.5,0.95))
 
