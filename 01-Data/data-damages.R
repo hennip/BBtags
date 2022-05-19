@@ -1,11 +1,17 @@
 library(runjags)
+require(rjags)
+require(sp)
+require(openxlsx)
+library(readxl)
+library(tidyverse)
+library(lubridate)
 
 # gear n_tagged n_return      p
 # <dbl>    <int>    <dbl>  <dbl>
 # 1     1      201       20 0.0995 #Kaukalo
 # 2     2      211       31 0.147 #Sukka
 
-dat2=read_xlsx("C:/Users/03080932/OneDrive - Valtion/Projects/BBTags/dat/orig/Vauriot_Data_2021.xlsx")%>%
+dat2=read_xlsx("C:/Users/03080932/OneDrive - Valtion/Projects/BBTags/dat/orig/Vauriot_Data_2021_ver2.xlsx")%>%
   filter(pituus>60) #Jätetään pois 1 mahd. 1SW kala kuten JAGS-mallissa
 
 t1<-dat2%>%group_by(rysätyyppi,vaurio)%>%

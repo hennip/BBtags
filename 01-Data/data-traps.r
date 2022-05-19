@@ -8,7 +8,8 @@ library(lubridate)
 #### Data preparation
 
 
-dat=read_xlsx("C:/Users/03080932/OneDrive - Valtion/Projects/BBTags/dat/der/Lohirysä_data_2021_der.xlsx")
+#dat=read_xlsx("C:/Users/03080932/OneDrive - Valtion/Projects/BBTags/dat/der/Lohirysä_data_2021_der.xlsx")
+dat=read_xlsx("C:/Users/03080932/OneDrive - Valtion/Projects/BBTags/dat/der/Kopio_Lohirysä_data_2021_der_TR.xlsx")
 #              options = "ENCODING=WINDOWS-1252")
 
 dat%>%filter(pituus<70)%>% select(pituus, everything())
@@ -47,36 +48,42 @@ df%>%group_by(gear)%>%
 
 filter(df, palautettu==1, is.na(week2)==T)
 
-# 3 palautettua kalaa joille tieto saantipäivästä puuttuu:
-# Viikolla 4 merkitty sukka-kala
+# 2 palautettua kalaa joille tieto saantipäivästä puuttuu:
 # Viikolla 5 merkitty kaukalo- ja sukkakala
 
-filter(df, week1==4, rysätyyppi=="Sukka", palautettu==1, is.na(week2)==F)%>%
-  summarise(w=round(mean(week2))) #8
+#filter(df, week1==4, rysätyyppi=="Sukka", palautettu==1, is.na(week2)==F)%>%
+#  summarise(w=round(mean(week2))) #8
 filter(df, week1==5, rysätyyppi=="Sukka", palautettu==1, is.na(week2)==F)%>%
-  summarise(w=round(mean(week2))) #8
-filter(df, week1==5, rysätyyppi=="Kaukalo", palautettu==1, is.na(week2)==F)%>%
   summarise(w=round(mean(week2))) #9
+filter(df, week1==5, rysätyyppi=="Kaukalo", palautettu==1, is.na(week2)==F)%>%
+  summarise(w=round(mean(week2))) #8
 
 # imputoidaan keskimääräiset palautusviikot puuttuviin
 
 df<-df%>%
-  mutate(week2=ifelse((week1==4 & rysätyyppi=="Sukka" & palautettu==1 & is.na(week2)==T), 8, week2 ))%>%
-  mutate(week2=ifelse((week1==5 & rysätyyppi=="Sukka" & palautettu==1 & is.na(week2)==T), 8, week2 ))%>%
-  mutate(week2=ifelse((week1==5 & rysätyyppi=="Kaukalo" & palautettu==1 & is.na(week2)==T), 9, week2 ))
+  mutate(week2=ifelse((week1==5 & rysätyyppi=="Sukka" & palautettu==1 & is.na(week2)==T), 9, week2 ))%>%
+  mutate(week2=ifelse((week1==5 & rysätyyppi=="Kaukalo" & palautettu==1 & is.na(week2)==T), 8, week2 ))
 
 #View(filter(df, palautettu==1))
 
-# Tsekataan ne jotka palautettu, mutta palautuspaikka tuntematon
-filter(df, palautettu==1, is.na(joki)==T & is.na(meri)==T) # 1kpl
-filter(df, week1==4, rysätyyppi=="Sukka", palautettu==1, is.na(week2)==F)%>%
-  select(joki, everything()) # joki 7 kpl, meri 8 kpl
+# Tsekataan ne jotka palautettu, mutta palautuspaikka tuntematon (2 kpl)
+filter(df, palautettu==1, is.na(joki)==T & is.na(meri)==T)
+# EI OLE ENÄÄ!
+# filter(df, week1==4, rysätyyppi=="Sukka", palautettu==1, is.na(week2)==F)%>%
+#   select(joki, meri, everything()) # joki 8 kpl, meri 8 kpl
+# filter(df, week1==4, rysätyyppi=="Kaukalo", palautettu==1, is.na(week2)==F)%>%
+#   select(joki, meri, everything()) # joki 2 kpl, meri 2 kpl
 
-# imputoidaan puuttuva saantitieto mereltä tulleeksi
-df<-df%>%
-  mutate(recap_area=ifelse((rysätyyppi=="Sukka" & palautettu==1 & is.na(meri)==T &is.na(joki)==T), 
-                     1, recap_area ))
-  
+#rbinom(1, 1,prob=0.5) # 0 =meri, 1=joki
+# tulos 0-> imputoidaan molemmat yllä mereltä tulleeksi
+
+# imputoidaan puuttuvar 2 saantitietoa mereltä tulleiksi
+# df<-df%>%
+#   mutate(recap_area=ifelse((rysätyyppi=="Sukka" & palautettu==1 & is.na(meri)==T &is.na(joki)==T), 
+#                      1, recap_area ))%>%
+#   mutate(recap_area=ifelse((rysätyyppi=="Kaukalo" & palautettu==1 & is.na(meri)==T &is.na(joki)==T), 
+#                          1, recap_area ))
+
 
 #View(filter(df, palautettu==1, rysätyyppi=="Sukka"))
 #View(filter(df, palautettu==1, rysätyyppi=="Kaukalo"))
