@@ -1,5 +1,6 @@
 
 library(runjags)
+library(HDInterval)
 
 
 
@@ -182,22 +183,23 @@ var_names<- c(
 
 run1 <- run.jags(M3,
                  monitor= var_names,data=data, #inits = inits,
-                 n.chains = 2, method = 'parallel', thin=10, sample=30000,
+                 n.chains = 2, method = 'parallel', thin=10, sample=20000,
                  modules = "mix",progress.bar=TRUE)
 
 
 run<-run1
 save(run, file=str_c("chains-traps-final.RData"))
 
-sum_run<-round(summary(run, confidence=c(0.9)),3);sum_run
+sum_run<-round(summary(run, confidence=c(0.95)),3);sum_run
+sum_run<-round(summary(run, confidence=c(0.90)),3);sum_run
 filter(as.data.frame(sum_run), `MC%ofSD`>5)
 plot(run)
-chains<-as.mcmc(run)
 summary(chains, quantiles=c(0.05,0.5,0.95) )
 
-
-
-
+load("03-Results/chains-traps-final.RData")
+chains<-as.mcmc(run)
+summary(chains)
+round(t(hdi(chains, credMass=0.9)),4)
 
 # Priors
 prior<-"
@@ -272,6 +274,8 @@ runP <- autorun.jags(prior,
 
 
 chainsP<-as.mcmc(runP)
+summary(chainsP)
+round(t(hdi(chainsP, credMass=0.9)),4)
 
 
 #summary(chainsP, quantiles=c(0.025,0.5,0.975))
